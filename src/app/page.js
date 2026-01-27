@@ -25,7 +25,7 @@ export default function Home() {
         .single()
 
       if (profile?.role === "admin") {
-        router.replace("/admin")
+        router.replace("/admin/customers")
       } else {
         router.replace("/dashboard") // veya CRM ana sayfan
       }
