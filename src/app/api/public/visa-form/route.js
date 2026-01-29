@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin"
 import { cleanObjectRecursive } from "@/utils/cleanObjectRecursive"
 import { normalizeFormData } from "@/utils/form-normalizers"
 import { extractCustomerName } from "@/utils/extractCustomerName"
+import { normalizeUkFormData } from "@/utils/normalizeUkFormData"
 
 /* =========================
    🔧 İSİM NORMALIZE HELPER
@@ -36,9 +37,21 @@ export async function POST(req) {
       body.data ||
       body
 
-    const email = body.email ?? null
-    const phone = body.phone ?? null
+   let email = null
+let phone = null
 
+if (visa_type === "uk") {
+  email =
+    rawFormData?.steps?.[1]?.email ?? null
+
+  phone =
+    rawFormData?.steps?.[1]?.phone_number ??
+    null
+} else {
+  // ds-160 veya diğer formlar
+  email = body.email ?? null
+  phone = body.phone ?? null
+}
     /* =========================
        2️⃣ BASE64 → STORAGE
        ========================= */
@@ -50,18 +63,37 @@ export async function POST(req) {
     /* =========================
        3️⃣ FORM NORMALIZE
        ========================= */
-    const normalizedFormData = normalizeFormData(
-      visa_type,
-      cleanedFormData
-    )
+  let normalizedFormData = null
+
+if (visa_type === "ds-160") {
+  normalizedFormData = normalizeFormData(
+    visa_type,
+    cleanedFormData
+  )
+} else if (visa_type === "uk") {
+  normalizedFormData = normalizeUkFormData(
+    cleanedFormData
+  )
+} else {
+  normalizedFormData = cleanedFormData
+}
 
     /* =========================
-       4️⃣ CUSTOMER NAME ÇIKAR
+       4️⃣ CUSTOMER NAME ÇIKAR 
        (GIVEN_NAME / SURNAME)
        ========================= */
-    const customerName = extractCustomerName(normalizedFormData)
+   let customerName = "Web Form"
 
-    console.log("CUSTOMER NAME:", customerName)
+if (visa_type === "ds-160") {
+  customerName = extractCustomerName(normalizedFormData)
+} else if (visa_type === "uk") {
+  customerName =
+    normalizedFormData?.fullName ||
+    normalizedFormData?.steps?.[1]?.fullName ||
+    "Web Form"
+}
+
+
 
     /* =========================
        5️⃣ CUSTOMER BUL

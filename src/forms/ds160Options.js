@@ -7,13 +7,23 @@ export const GENDER_OPTIONS = [
   { value: "M", label: "Male" },
   { value: "F", label: "Female" },
 ]
-
+export const GENDER_OPTIONS_UK = [
+  { value: "ERKEK", label: "Male" },
+  { value: "KADIN", label: "Female" },
+]
 export const MARITAL_STATUS_OPTIONS = [
   { value: "SINGLE", label: "Single" },
   { value: "MARRIED", label: "Married" },
   { value: "DIVORCED", label: "Divorced" },
   { value: "WIDOWED", label: "Widowed" },
   { value: "SEPARATED", label: "Separated" },
+]
+export const MARITAL_STATUS_OPTIONS_UK = [
+  { value: "BEKAR", label: "Single" },
+  { value: "EVLI", label: "Married" },
+  { value: "BOSANMIS", label: "Divorced" },
+  { value: "DUL", label: "Widowed" },
+  { value: "KAYIT DIŞI BİRLİKTELİK", label: "Unregistered Partnership" },
 ]
 export const monthOptions = [
   { value: "JAN", label: "January" },
@@ -540,3 +550,51 @@ export const allCountries = [
 
 
   ]
+
+      export const evet_hayir = [
+
+    {"value":"EVET","label":"Yes"},
+    {"value":"HAYIR","label":"No"},
+
+  ]
+
+  export const home_owner =[
+     {"value":"KENDİSİ","label":"Self"},
+    {"value":"KİRA","label":"For Rent"},
+    {"value":"DIGER","label":"Other"},
+  ]
+
+    export const work_boolean =[
+     {"value":"EV_HANIMI","label":"Home Maker"},
+    {"value":"OGRENCI","label":"Student"},
+    {"value":"CALISIYOR","label":"Worker"},
+    {"value":"EMEKLI","label":"Retired"},
+    {"value":"CALISMAYAN","label":"Not Employed"},
+
+  ]
+
+  
+    export const travel_select =[
+   { "value": "AILE ZIYARETI", "label": "Family Visit" },
+  { "value": "ARKADAŞ ZIYARETI", "label": "Friend Visit" },
+  { "value": "IS", "label": "Business" },
+  { "value": "TRANSİT", "label": "Transit" },
+  { "value": "TURISTIK", "label": "Tourism" },
+  { "value": "AKADEMIK ZIYARET", "label": "Academic Visit" },
+  { "value": "KISA SURELI EGITIM", "label": "Short-Term Study" },
+  { "value": "SAGLIK", "label": "Medical Treatment" },
+  { "value": "EVLILIK", "label": "Marriage" },
+  { "value": "DIGER", "label": "Other" }
+
+
+  ]
+
+  export const other_visited_country=[
+  { "value": "HIC", "label": "Never" },
+  { "value": "1 KEZ", "label": "Once" },
+  { "value": "2 KEZ", "label": "2 Times" },
+  { "value": "3 KEZ", "label": "3 Times" },
+  { "value": "4 KEZ", "label": "4 Times" },
+  { "value": "5 KEZ", "label": "5 Times" },
+  { "value": "6 VE UZERI", "label": "6 or More Times" }
+]

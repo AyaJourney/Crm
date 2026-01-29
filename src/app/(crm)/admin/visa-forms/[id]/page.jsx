@@ -8,9 +8,11 @@ import { ds160Schema } from "@/forms/ds160.schema"
 import CaptchaModal from "../modal/CaptchaModal"
 import ReadOnlyViewer from "@/components/ReadOnlyViewer"
 import BarcodeSelectModal from "../modal/BarcodeSelectModal"
+import { resolveVisaSchema } from "@/forms/schemaResolver"
+import UkEditor from "@/components/editors/UkEditor"
+
 export default function VisaFormDetailPage() {
 const {id} =useParams()
-
   const [form, setForm] = useState(null)
   const [data, setData] = useState({})
   const [loading, setLoading] = useState(true)
@@ -48,8 +50,19 @@ const isMerged = mode === "merged"
     if (row) {
       setForm(row)
       // Eğer __raw varsa onu kullan, yoksa direkt data'yı kullan
-      const finalData = row.data?.__raw || row.data || {}
-      setData(finalData)
+      const finalData = row.data || {}
+
+const rawSteps =
+  row.data?.__raw?.steps ||
+  row.data?.steps ||   // 🔥 BAZI KAYITLARDA BURADA
+  {}
+     setData({
+  ...finalData,
+  __raw: {
+    ...(row.data?.__raw || {}),
+    steps: rawSteps,
+  },
+})
     }
     setLoading(false)
   }
@@ -98,6 +111,7 @@ useEffect(() => {
   
   }
 
+const isDs160 = form?.visa_type === "ds-160"
  
 
 const submitCaptcha = async (value) => {
@@ -328,7 +342,7 @@ if (loading || !form) {
   return <p>Yükleniyor...</p>
 }
   const baseBtn ="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none"
-
+console.log(form,"form")
   return (
     <div style={{ maxWidth: 1200 }}>
 
@@ -372,7 +386,7 @@ if (loading || !form) {
     </h2>
   </div>
 )}
-{form?.source === "customer" && (
+{(form?.source === "customer" && isDs160) && (
 <button
   onClick={()=>{openMergeModal();handleMerge()}}
   className={`${baseBtn} bg-indigo-600 text-white hover:bg-indigo-700`}
@@ -386,16 +400,35 @@ if (loading || !form) {
    <h2 className="font-bold underline mb-1">{form.visa_type.toUpperCase()} Formu</h2>
 </div>
 
-{!isCustomer ? (
-  <RecursiveEditor
+{isDs160 && isCustomer ? (
+  // 🇺🇸 DS-160 + CUSTOMER → READ ONLY (merge / özel durum)
+  <ReadOnlyViewer
     data={data}
-    onChange={setData}
     schema={ds160Schema}
   />
 ) : (
-  <ReadOnlyViewer data={data} schema={ds160Schema} />
+(isDs160 ? ( <RecursiveEditor
+    data={data}
+    onChange={setData}
+    schema={resolveVisaSchema(form?.visa_type)}
+    visaType={form?.visa_type}
+  />) : (form.visa_type == "uk" && (  <UkEditor
+  data={data?.__raw?.steps || data?.steps || {}}
+  onChange={(updatedSteps) => {
+    setData({
+      ...data,
+      __raw: {
+        ...(data.__raw || {}),
+        steps: updatedSteps,
+      },
+    })
+  }}
+/>))) 
+ 
+
 )}
-{["waiting_captcha", "captcha_refresh"].includes(jobs?.status) &&
+{isDs160 &&
+  ["waiting_captcha", "captcha_refresh"].includes(jobs?.status) &&
   jobs?.captcha_image_base64 && (
     <CaptchaModal
       job={jobs}
@@ -411,7 +444,7 @@ if (loading || !form) {
 
 
 
-{!isCustomer && (
+{(!isCustomer || form?.visa_type == "uk") && (
   <div className="flex gap-2 mt-4">
   <button
   onClick={save}
@@ -421,7 +454,7 @@ if (loading || !form) {
   {saving ? "Kaydediliyor..." : "Kaydet"}
 </button>
 
-  {(form?.status === "new" || form?.status == "merge" || form?.status == "entered_form")  && (
+  {((form?.status === "new" || form?.status == "merge" || form?.status == "entered_form") && data?.visa_type == "ds-160" ) && (
     <button
       onClick={startBot}
       className={`${baseBtn} bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-2`}
@@ -470,7 +503,7 @@ if (loading || !form) {
 </div>
 )}
 
-{showBarcodeModal && (
+{(isDs160 && showBarcodeModal) && (
   <BarcodeSelectModal
     forms={barcodeForms}
     onSelect={(f) => {
