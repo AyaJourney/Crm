@@ -3,8 +3,8 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
 import { cleanObjectRecursive } from "@/utils/cleanObjectRecursive"
 import { normalizeFormData } from "@/utils/form-normalizers"
-import { extractCustomerName } from "@/utils/extractCustomerName"
 import { normalizeUkFormData } from "@/utils/normalizeUkFormData"
+import { extractCustomerName } from "@/utils/extractCustomerName"
 
 /* =========================
    🔧 İSİM NORMALIZE HELPER
@@ -15,7 +15,7 @@ function normalizeName(name) {
   return name
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // aksan sil
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/\s+/g, " ")
     .trim()
 }
@@ -37,21 +37,6 @@ export async function POST(req) {
       body.data ||
       body
 
-   let email = null
-let phone = null
-
-if (visa_type === "uk") {
-  email =
-    rawFormData?.steps?.[1]?.email ?? null
-
-  phone =
-    rawFormData?.steps?.[1]?.phone_number ??
-    null
-} else {
-  // ds-160 veya diğer formlar
-  email = body.email ?? null
-  phone = body.phone ?? null
-}
     /* =========================
        2️⃣ BASE64 → STORAGE
        ========================= */
@@ -62,63 +47,64 @@ if (visa_type === "uk") {
 
     /* =========================
        3️⃣ FORM NORMALIZE
+       (DS-160 BOZULMAZ)
        ========================= */
-  let normalizedFormData = null
+    let normalizedFormData = null
+    let email = body.email ?? null
+    let phone = body.phone ?? null
 
-if (visa_type === "ds-160") {
-  normalizedFormData = normalizeFormData(
-    visa_type,
-    cleanedFormData
-  )
-} else if (visa_type === "uk") {
-  normalizedFormData = normalizeUkFormData(
-    cleanedFormData
-  )
-} else {
-  normalizedFormData = cleanedFormData
-}
+    if (visa_type === "uk") {
+      normalizedFormData =
+        normalizeUkFormData(cleanedFormData)
+
+      // 🔥 UK'de email / phone step içinden gelir
+      email =
+        normalizedFormData?.email ?? null
+      phone =
+        normalizedFormData?.phone ?? null
+    } else {
+      normalizedFormData =
+        normalizeFormData(
+          visa_type,
+          cleanedFormData
+        )
+    }
 
     /* =========================
-       4️⃣ CUSTOMER NAME ÇIKAR 
-       (GIVEN_NAME / SURNAME)
+       4️⃣ CUSTOMER NAME ÇIKAR
        ========================= */
-   let customerName = "Web Form"
-
-if (visa_type === "ds-160") {
-  customerName = extractCustomerName(normalizedFormData)
-} else if (visa_type === "uk") {
-  customerName =
-    normalizedFormData?.fullName ||
-    normalizedFormData?.steps?.[1]?.fullName ||
-    "Web Form"
-}
-
-
+    const customerName =
+      extractCustomerName(normalizedFormData)
 
     /* =========================
        5️⃣ CUSTOMER BUL
        ÖNCELİK:
        1. Email
        2. Phone
-       3. Name (normalize)
+       3. Name
        ========================= */
     let customerId = null
     let matchedBy = null
 
     // 5️⃣-1 Email / Phone
     if (email || phone) {
-      const { data: existing } = await supabaseAdmin
-        .from("customers")
-        .select("id,name")
-        .or(
-          [
-            email ? `email.eq.${email}` : null,
-            phone ? `phone.eq.${phone}` : null,
-          ]
-            .filter(Boolean)
-            .join(",")
-        )
-        .maybeSingle()
+      const { data: existing } =
+        await supabaseAdmin
+          .from("customers")
+          .select("id,name")
+          .or(
+            [
+              email
+                ? `email.eq.${email}`
+                : null,
+              phone
+                ? `phone.eq.${phone}`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(",")
+          )
+          .maybeSingle()
 
       if (existing) {
         customerId = existing.id
@@ -126,22 +112,25 @@ if (visa_type === "ds-160") {
       }
     }
 
-    // 5️⃣-2 Name match (SADECE BULUNAMADIYSA)
+    // 5️⃣-2 Name match
     if (
       !customerId &&
       customerName &&
       customerName !== "Web Form"
     ) {
-      const normalizedIncoming = normalizeName(customerName)
+      const normalizedIncoming =
+        normalizeName(customerName)
 
-      const { data: customers } = await supabaseAdmin
-        .from("customers")
-        .select("id,name")
-        .not("name", "is", null)
+      const { data: customers } =
+        await supabaseAdmin
+          .from("customers")
+          .select("id,name")
+          .not("name", "is", null)
 
       const matched = customers?.find(
         (c) =>
-          normalizeName(c.name) === normalizedIncoming
+          normalizeName(c.name) ===
+          normalizedIncoming
       )
 
       if (matched) {
@@ -154,16 +143,18 @@ if (visa_type === "ds-160") {
        6️⃣ CUSTOMER OLUŞTUR
        ========================= */
     if (!customerId) {
-      const { data: customer } = await supabaseAdmin
-        .from("customers")
-        .insert({
-          name: customerName,
-          email,
-          phone,
-          source: "web_form",
-        })
-        .select("id")
-        .single()
+      const { data: customer } =
+        await supabaseAdmin
+          .from("customers")
+          .insert({
+            name:
+              customerName || "Web Form",
+            email,
+            phone,
+            source: "web_form",
+          })
+          .select("id")
+          .single()
 
       customerId = customer.id
       matchedBy = "created"
@@ -171,9 +162,12 @@ if (visa_type === "ds-160") {
 
     /* =========================
        7️⃣ CUSTOMER NAME FIX
-       (Web Form → Gerçek İsim)
        ========================= */
-    if (matchedBy === "contact" && customerName !== "Web Form") {
+    if (
+      matchedBy === "contact" &&
+      customerName &&
+      customerName !== "Web Form"
+    ) {
       await supabaseAdmin
         .from("customers")
         .update({ name: customerName })

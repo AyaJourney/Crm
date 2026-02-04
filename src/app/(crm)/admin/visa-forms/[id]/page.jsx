@@ -454,7 +454,7 @@ console.log(form,"form")
   {saving ? "Kaydediliyor..." : "Kaydet"}
 </button>
 
-  {((form?.status === "new" || form?.status == "merge" || form?.status == "entered_form") && data?.visa_type == "ds-160" ) && (
+  {((form?.status === "new" || form?.status == "merge" || form?.status == "entered_form") && form?.visa_type == "ds-160" ) && (
     <button
       onClick={startBot}
       className={`${baseBtn} bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-2`}
